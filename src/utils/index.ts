@@ -73,21 +73,45 @@ export const sendRequest = async <ResponseData>(
 };
 
 export const setLocalStorageChatflow = (chatflowid: string, chatId: string, saveObj: Record<string, any> = {}) => {
-  const chatDetails = localStorage.getItem(`${chatflowid}_EXTERNAL`);
+  const MAX_HISTORY = 30;
+  const MAX_BYTES = 2000;
+
   const obj = { ...saveObj };
   if (chatId) obj.chatId = chatId;
 
-  if (!chatDetails) {
-    localStorage.setItem(`${chatflowid}_EXTERNAL`, JSON.stringify(obj));
-  } else {
-    try {
-      const parsedChatDetails = JSON.parse(chatDetails);
-      localStorage.setItem(`${chatflowid}_EXTERNAL`, JSON.stringify({ ...parsedChatDetails, ...obj }));
-    } catch (e) {
-      const chatId = chatDetails;
-      obj.chatId = chatId;
-      localStorage.setItem(`${chatflowid}_EXTERNAL`, JSON.stringify(obj));
+  // Trim chatHistory and remove heavy fields
+  if (Array.isArray(obj.chatHistory)) {
+    console.log(`[SAM] chatHistory before trim: ${obj.chatHistory.length}`);
+    obj.chatHistory = obj.chatHistory.slice(-MAX_HISTORY).map((msg) => {
+      const { agentReasoning, sourceDocuments, artifacts, ...rest } = msg;
+      return rest;
+    });
+    console.log(`[SAM] chatHistory after trim: ${obj.chatHistory.length}`);
+  }
+
+  const jsonStr = JSON.stringify(obj);
+  const byteSize = new Blob([jsonStr]).size;
+  console.log(`[SAM] chatflow state size: ${byteSize} bytes`);
+
+  if (byteSize > MAX_BYTES) {
+    console.warn(`[SAM] Skipped saving oversized chatflow state to localStorage (${byteSize} bytes)`);
+    return;
+  }
+
+  try {
+    const chatDetails = localStorage.getItem(`${chatflowid}_EXTERNAL`);
+    if (chatDetails) {
+      const parsed = JSON.parse(chatDetails);
+      const merged = { ...parsed, ...obj };
+      if (obj.chatHistory) merged.chatHistory = obj.chatHistory;
+      localStorage.setItem(`${chatflowid}_EXTERNAL`, JSON.stringify(merged));
+    } else {
+      localStorage.setItem(`${chatflowid}_EXTERNAL`, jsonStr);
     }
+    console.log(`[SAM] Saved state for ${chatflowid}_EXTERNAL`);
+  } catch (e) {
+    console.error(`[SAM] Failed to update localStorage:`, e);
+    localStorage.setItem(`${chatflowid}_EXTERNAL`, JSON.stringify({ chatId }));
   }
 };
 
