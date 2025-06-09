@@ -74,27 +74,22 @@ export const sendRequest = async <ResponseData>(
 
 export const setLocalStorageChatflow = (chatflowid: string, chatId: string, saveObj: Record<string, any> = {}) => {
   const MAX_HISTORY = 30;
-  const MAX_BYTES = 2000;
+  const MAX_BYTES = 100_000; // 100KB
 
   const obj = { ...saveObj };
   if (chatId) obj.chatId = chatId;
 
   // Trim chatHistory and remove heavy fields
   if (Array.isArray(obj.chatHistory)) {
-    console.log(`[SAM] chatHistory before trim: ${obj.chatHistory.length}`);
-    obj.chatHistory = obj.chatHistory.slice(-MAX_HISTORY).map((msg) => {
-      const { agentReasoning, sourceDocuments, artifacts, ...rest } = msg;
-      return rest;
-    });
-    console.log(`[SAM] chatHistory after trim: ${obj.chatHistory.length}`);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    obj.chatHistory = obj.chatHistory.slice(-MAX_HISTORY).map(({ agentReasoning, sourceDocuments, artifacts, ...rest }) => rest);
   }
 
   const jsonStr = JSON.stringify(obj);
   const byteSize = new Blob([jsonStr]).size;
-  console.log(`[SAM] chatflow state size: ${byteSize} bytes`);
 
   if (byteSize > MAX_BYTES) {
-    console.warn(`[SAM] Skipped saving oversized chatflow state to localStorage (${byteSize} bytes)`);
+    console.info(`[FlowiseChat] Skipped saving chatflow state to localStorage: size ${byteSize} bytes exceeds limit (${MAX_BYTES} bytes)`);
     return;
   }
 
@@ -108,10 +103,13 @@ export const setLocalStorageChatflow = (chatflowid: string, chatId: string, save
     } else {
       localStorage.setItem(`${chatflowid}_EXTERNAL`, jsonStr);
     }
-    console.log(`[SAM] Saved state for ${chatflowid}_EXTERNAL`);
   } catch (e) {
-    console.error(`[SAM] Failed to update localStorage:`, e);
-    localStorage.setItem(`${chatflowid}_EXTERNAL`, JSON.stringify({ chatId }));
+    console.error(`[FlowiseChat] Failed to update localStorage:`, e);
+    try {
+      localStorage.setItem(`${chatflowid}_EXTERNAL`, JSON.stringify({ chatId }));
+    } catch (e2) {
+      console.error(`[FlowiseChat] Failed to save chatId to localStorage:`, e2);
+    }
   }
 };
 
