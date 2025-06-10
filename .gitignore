@@ -8,3 +8,7 @@ build/
 
 # node_modules
 node_modules/
+
+
+# husky
+prepare-commit-msg

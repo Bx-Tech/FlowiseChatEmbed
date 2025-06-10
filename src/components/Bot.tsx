@@ -22,6 +22,7 @@ import {
   FeedbackTheme,
   DisclaimerPopUpTheme,
   DateTimeToggleTheme,
+  StarterPrompt,
 } from '@/features/bubble/types';
 import { Badge } from './Badge';
 import { Popup, DisclaimerPopup } from '@/features/popup';
@@ -165,7 +166,7 @@ export type BotProps = {
   footer?: FooterTheme;
   sourceDocsTitle?: string;
   observersConfig?: observersConfigType;
-  starterPrompts?: string[] | Record<string, { prompt: string }>;
+  starterPrompts?: StarterPrompt[];
   starterPromptFontSize?: number;
   clearChatOnReload?: boolean;
   disclaimer?: DisclaimerPopUpTheme;
@@ -476,7 +477,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   const [isChatFlowAvailableToStream, setIsChatFlowAvailableToStream] = createSignal(false);
   const [chatId, setChatId] = createSignal('');
   const [isMessageStopping, setIsMessageStopping] = createSignal(false);
-  const [starterPrompts, setStarterPrompts] = createSignal<string[]>([], { equals: false });
+  const [starterPrompts, setStarterPrompts] = createSignal<StarterPrompt[]>([], { equals: false });
   const [chatFeedbackStatus, setChatFeedbackStatus] = createSignal<boolean>(false);
   const [fullFileUpload, setFullFileUpload] = createSignal<boolean>(false);
   const [uploadsConfig, setUploadsConfig] = createSignal<UploadsConfig>();
@@ -1211,18 +1212,19 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
 
   createEffect(() => {
     if (props.starterPrompts) {
-      let prompts: string[];
-
+      let prompts: StarterPrompt[];
       if (Array.isArray(props.starterPrompts)) {
-        // If starterPrompts is an array
         prompts = props.starterPrompts;
       } else {
-        // If starterPrompts is a JSON object
-        prompts = Object.values(props.starterPrompts).map((promptObj: { prompt: string }) => promptObj.prompt);
+        prompts = (Object.values(props.starterPrompts) as { prompt: string }[]).map((promptObj) => promptObj.prompt);
       }
-
       // Filter out any empty prompts
-      return setStarterPrompts(prompts.filter((prompt) => prompt !== ''));
+      return setStarterPrompts(
+        prompts.filter((prompt) => {
+          if (typeof prompt === 'string') return prompt !== '';
+          return prompt.label !== '';
+        }),
+      );
     }
   });
 
@@ -1887,13 +1889,25 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
               <Show when={starterPrompts().length > 0}>
                 <div class="w-full flex flex-row flex-wrap px-5 py-[10px] gap-2">
                   <For each={[...starterPrompts()]}>
-                    {(key) => (
-                      <StarterPromptBubble
-                        prompt={key}
-                        onPromptClick={() => promptClick(key)}
-                        starterPromptFontSize={botProps.starterPromptFontSize} // Pass it here as a number
-                      />
-                    )}
+                    {(prompt) => {
+                      if (typeof prompt === 'string') {
+                        return (
+                          <StarterPromptBubble
+                            prompt={prompt}
+                            onPromptClick={() => promptClick(prompt)}
+                            starterPromptFontSize={botProps.starterPromptFontSize}
+                          />
+                        );
+                      } else {
+                        return (
+                          <StarterPromptBubble
+                            prompt={prompt.label}
+                            onPromptClick={prompt.onClick || (() => promptClick(prompt.label))}
+                            starterPromptFontSize={botProps.starterPromptFontSize}
+                          />
+                        );
+                      }
+                    }}
                   </For>
                 </div>
               </Show>

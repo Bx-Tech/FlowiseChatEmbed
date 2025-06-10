@@ -56,6 +56,9 @@ export type FeedbackTheme = {
   color?: string;
 };
 
+// 1. Add the new type at the top (near other types)
+export type StarterPrompt = string | { label: string; onClick?: () => void };
+
 export type ChatWindowTheme = {
   showTitle?: boolean;
   showAgentMessages?: boolean; // parameter to show agent reasonings when using agentflows
@@ -77,7 +80,7 @@ export type ChatWindowTheme = {
   footer?: FooterTheme;
   sourceDocsTitle?: string;
   poweredByTextColor?: string;
-  starterPrompts?: string[];
+  starterPrompts?: StarterPrompt[];
   starterPromptFontSize?: number;
   clearChatOnReload?: boolean;
   dateTimeToggle?: DateTimeToggleTheme;

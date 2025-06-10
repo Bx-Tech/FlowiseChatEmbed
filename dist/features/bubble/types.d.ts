@@ -48,6 +48,10 @@ export type FooterTheme = {
 export type FeedbackTheme = {
     color?: string;
 };
+export type StarterPrompt = string | {
+    label: string;
+    onClick?: () => void;
+};
 export type ChatWindowTheme = {
     showTitle?: boolean;
     showAgentMessages?: boolean;
@@ -69,7 +73,7 @@ export type ChatWindowTheme = {
     footer?: FooterTheme;
     sourceDocsTitle?: string;
     poweredByTextColor?: string;
-    starterPrompts?: string[];
+    starterPrompts?: StarterPrompt[];
     starterPromptFontSize?: number;
     clearChatOnReload?: boolean;
     dateTimeToggle?: DateTimeToggleTheme;
