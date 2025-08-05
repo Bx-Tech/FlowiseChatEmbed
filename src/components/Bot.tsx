@@ -38,6 +38,8 @@ import { cloneDeep } from 'lodash';
 import { FollowUpPromptBubble } from '@/components/bubbles/FollowUpPromptBubble';
 import { fetchEventSource, EventStreamContentType } from '@microsoft/fetch-event-source';
 
+
+
 export type FileEvent<T = EventTarget> = {
   target: T;
 };
@@ -135,6 +137,7 @@ type IUploads = {
 }[];
 
 type observerConfigType = (accessor: string | boolean | object | MessageType[]) => void;
+console.log('== BOT PACKAGE LOADED FROM LOCAL ==');
 export type observersConfigType = Record<'observeUserInput' | 'observeLoading' | 'observeMessages', observerConfigType>;
 
 export type BotProps = {
@@ -173,6 +176,7 @@ export type BotProps = {
   dateTimeToggle?: DateTimeToggleTheme;
   renderHTML?: boolean;
   closeBot?: () => void;
+  onSendMessage?: (sendMessage: (message: string | object, action?: any, humanInput?: any) => Promise<void>) => void;
 };
 
 export type LeadsConfig = {
@@ -540,6 +544,13 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
         createMemo(() => {
           observeMessages(messages());
         });
+    }
+    if (typeof props.onSendMessage === 'function') {
+      // Pass a function that wraps handleSubmit
+      props.onSendMessage((message: string | object, action: IAction | null | undefined, humanInput: any) => {
+        console.log('[Bot] onSendMessage provided to parent:');
+        return handleSubmit(message, action, humanInput);
+      });
     }
 
     if (!bottomSpacer) return;
