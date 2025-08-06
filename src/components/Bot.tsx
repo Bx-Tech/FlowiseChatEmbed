@@ -177,6 +177,7 @@ export type BotProps = {
   renderHTML?: boolean;
   closeBot?: () => void;
   onSendMessage?: (sendMessage: (message: string | object, action?: any, humanInput?: any) => Promise<void>) => void;
+  onBotMount?: (sendMessage: (message: string | object, action?: any, humanInput?: any) => Promise<void>) => void;
 };
 
 export type LeadsConfig = {
@@ -527,6 +528,10 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   });
 
   onMount(() => {
+    console.log("Bot.tsx onMount called", botProps)
+    if (typeof props.onBotMount === "function") {
+      props.onBotMount(handleSubmit);
+    }
     if (botProps?.observersConfig) {
       const { observeUserInput, observeLoading, observeMessages } = botProps.observersConfig;
       typeof observeUserInput === 'function' &&
@@ -546,6 +551,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
         });
     }
     if (typeof props.onSendMessage === 'function') {
+      console.log('onSendMessage', props.onSendMessage);
       // Pass a function that wraps handleSubmit
       props.onSendMessage((message: string | object, action: IAction | null | undefined, humanInput: any) => {
         console.log('[Bot] onSendMessage provided to parent:');
@@ -996,7 +1002,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     }
 
     let formData = {};
-    if (typeof value === 'object') {
+    if (value && typeof value === 'object') {
       formData = value;
       value = Object.entries(value)
         .map(([key, value]) => `${key}: ${value}`)
