@@ -137,7 +137,6 @@ type IUploads = {
 }[];
 
 type observerConfigType = (accessor: string | boolean | object | MessageType[]) => void;
-console.log('== BOT PACKAGE LOADED FROM LOCAL ==');
 export type observersConfigType = Record<'observeUserInput' | 'observeLoading' | 'observeMessages', observerConfigType>;
 
 export type BotProps = {
@@ -528,7 +527,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   });
 
   onMount(() => {
-    console.log("Bot.tsx onMount called", botProps)
     if (typeof props.onBotMount === "function") {
       props.onBotMount(handleSubmit);
     }
@@ -551,10 +549,8 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
         });
     }
     if (typeof props.onSendMessage === 'function') {
-      console.log('onSendMessage', props.onSendMessage);
       // Pass a function that wraps handleSubmit
       props.onSendMessage((message: string | object, action: IAction | null | undefined, humanInput: any) => {
-        console.log('[Bot] onSendMessage provided to parent:');
         return handleSubmit(message, action, humanInput);
       });
     }
