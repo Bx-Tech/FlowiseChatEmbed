@@ -38,6 +38,8 @@ import { cloneDeep } from 'lodash';
 import { FollowUpPromptBubble } from '@/components/bubbles/FollowUpPromptBubble';
 import { fetchEventSource, EventStreamContentType } from '@microsoft/fetch-event-source';
 
+
+
 export type FileEvent<T = EventTarget> = {
   target: T;
 };
@@ -173,6 +175,8 @@ export type BotProps = {
   dateTimeToggle?: DateTimeToggleTheme;
   renderHTML?: boolean;
   closeBot?: () => void;
+  onSendMessage?: (sendMessage: (message: string | object, action?: any, humanInput?: any) => Promise<void>) => void;
+  onBotMount?: (sendMessage: (message: string | object, action?: any, humanInput?: any) => Promise<void>) => void;
 };
 
 export type LeadsConfig = {
@@ -523,6 +527,9 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   });
 
   onMount(() => {
+    if (typeof props.onBotMount === "function") {
+      props.onBotMount(handleSubmit);
+    }
     if (botProps?.observersConfig) {
       const { observeUserInput, observeLoading, observeMessages } = botProps.observersConfig;
       typeof observeUserInput === 'function' &&
@@ -540,6 +547,12 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
         createMemo(() => {
           observeMessages(messages());
         });
+    }
+    if (typeof props.onSendMessage === 'function') {
+      // Pass a function that wraps handleSubmit
+      props.onSendMessage((message: string | object, action: IAction | null | undefined, humanInput: any) => {
+        return handleSubmit(message, action, humanInput);
+      });
     }
 
     if (!bottomSpacer) return;
@@ -985,7 +998,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     }
 
     let formData = {};
-    if (typeof value === 'object') {
+    if (value && typeof value === 'object') {
       formData = value;
       value = Object.entries(value)
         .map(([key, value]) => `${key}: ${value}`)
