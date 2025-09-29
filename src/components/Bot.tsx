@@ -38,8 +38,6 @@ import { cloneDeep } from 'lodash';
 import { FollowUpPromptBubble } from '@/components/bubbles/FollowUpPromptBubble';
 import { fetchEventSource, EventStreamContentType } from '@microsoft/fetch-event-source';
 
-
-
 export type FileEvent<T = EventTarget> = {
   target: T;
 };
@@ -176,7 +174,7 @@ export type BotProps = {
   renderHTML?: boolean;
   closeBot?: () => void;
   onSendMessage?: (sendMessage: (message: string | object, action?: any, humanInput?: any) => Promise<void>) => void;
-  onBotMount?: (sendMessage: (message: string | object, action?: any, humanInput?: any) => Promise<void>) => void;
+  onBotMount?: (sendMessage: (message: string | object, action?: any, humanInput?: any) => Promise<void>, getChatId: () => string, injectMessage: (message: string, type?: messageType) => void) => void;
 };
 
 export type LeadsConfig = {
@@ -527,8 +525,14 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   });
 
   onMount(() => {
-    if (typeof props.onBotMount === "function") {
-      props.onBotMount(handleSubmit);
+    if (typeof props.onBotMount === 'function') {
+      props.onBotMount(
+        (message: string | object, action: IAction | null | undefined, humanInput: any) => {
+          return handleSubmit(message, action, humanInput);
+        },
+        () => chatId(),
+        injectMessage,
+      );
     }
     if (botProps?.observersConfig) {
       const { observeUserInput, observeLoading, observeMessages } = botProps.observersConfig;
@@ -553,6 +557,17 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       props.onSendMessage((message: string | object, action: IAction | null | undefined, humanInput: any) => {
         return handleSubmit(message, action, humanInput);
       });
+    }
+
+    if (typeof props.onBotMount === 'function') {
+      // Pass sendMessage, getChatId, and injectMessage functions
+      props.onBotMount(
+        (message: string | object, action: IAction | null | undefined, humanInput: any) => {
+          return handleSubmit(message, action, humanInput);
+        },
+        () => chatId(),
+        injectMessage,
+      );
     }
 
     if (!bottomSpacer) return;
@@ -1211,6 +1226,15 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       const errorData = error.response.data || `${error.response.status}: ${error.response.statusText}`;
       console.error(`error: ${errorData}`);
     }
+  };
+
+  const injectMessage = (message: string, type: messageType = 'apiMessage') => {
+    setMessages((prevMessages) => {
+      const newMessage: MessageType = { message, type };
+      const updatedMessages = [...prevMessages, newMessage];
+      addChatMessage(updatedMessages);
+      return updatedMessages;
+    });
   };
 
   onMount(() => {

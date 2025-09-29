@@ -158,6 +158,7 @@ export const Bubble = (props: BubbleProps) => {
               renderHTML={props.theme?.chatWindow?.renderHTML}
               closeBot={closeBot}
               onSendMessage={props.onSendMessage}
+              onBotMount={props.onBotMount}
             />
           </div>
         </Show>

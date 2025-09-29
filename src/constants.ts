@@ -8,4 +8,5 @@ export const defaultBotProps: BubbleProps = {
   theme: undefined,
   observersConfig: undefined,
   onSendMessage: undefined,
+  onBotMount: undefined,
 };

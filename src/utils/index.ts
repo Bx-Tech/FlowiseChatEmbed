@@ -73,23 +73,52 @@ export const sendRequest = async <ResponseData>(
 };
 
 export const setLocalStorageChatflow = (chatflowid: string, chatId: string, saveObj: Record<string, any> = {}) => {
-  const MAX_HISTORY = 30;
-  const MAX_BYTES = 100_000; // 100KB
+  const MAX_BYTES = 1_000_000; // 1MB
 
   const obj = { ...saveObj };
   if (chatId) obj.chatId = chatId;
 
-  // Trim chatHistory and remove heavy fields
+  // Remove heavy fields from chat history - keep only essential fields for both message types
   if (Array.isArray(obj.chatHistory)) {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    obj.chatHistory = obj.chatHistory.slice(-MAX_HISTORY).map(({ agentReasoning, sourceDocuments, artifacts, ...rest }) => rest);
+    obj.chatHistory = obj.chatHistory.map((message) => {
+      // Essential fields for all messages
+      const trimmedMessage: any = {
+        messageId: message.messageId,
+        message: message.message,
+        type: message.type,
+      };
+
+      // Optional fields that are small and useful
+      if (message.rating) trimmedMessage.rating = message.rating;
+      if (message.dateTime) trimmedMessage.dateTime = message.dateTime;
+
+      // Only include fileUploads for userMessage (and only basic info)
+      if (message.type === 'userMessage' && message.fileUploads && message.fileUploads.length > 0) {
+        trimmedMessage.fileUploads = message.fileUploads.map((file: any) => ({
+          type: file.type,
+          name: file.name,
+          mime: file.mime
+        }));
+      }
+
+      return trimmedMessage;
+    });
   }
 
-  const jsonStr = JSON.stringify(obj);
-  const byteSize = new Blob([jsonStr]).size;
+  // Check size and truncate if needed - remove oldest messages to stay under limit
+  let jsonStr = JSON.stringify(obj);
+  let byteSize = new Blob([jsonStr]).size;
+
+  if (byteSize > MAX_BYTES && Array.isArray(obj.chatHistory) && obj.chatHistory.length > 1) {
+    // Remove oldest messages one by one until under limit
+    while (byteSize > MAX_BYTES && obj.chatHistory.length > 1) {
+      obj.chatHistory.shift(); // Remove oldest message
+      jsonStr = JSON.stringify(obj);
+      byteSize = new Blob([jsonStr]).size;
+    }
+  }
 
   if (byteSize > MAX_BYTES) {
-    console.info(`[FlowiseChat] Skipped saving chatflow state to localStorage: size ${byteSize} bytes exceeds limit (${MAX_BYTES} bytes)`);
     return;
   }
 

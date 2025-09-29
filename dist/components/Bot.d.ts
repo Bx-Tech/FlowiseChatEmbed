@@ -116,6 +116,8 @@ export type BotProps = {
     dateTimeToggle?: DateTimeToggleTheme;
     renderHTML?: boolean;
     closeBot?: () => void;
+    onSendMessage?: (sendMessage: (message: string | object, action?: any, humanInput?: any) => Promise<void>) => void;
+    onBotMount?: (sendMessage: (message: string | object, action?: any, humanInput?: any) => Promise<void>, getChatId: () => string, injectMessage: (message: string, type?: messageType) => void) => void;
 };
 export type LeadsConfig = {
     status: boolean;
