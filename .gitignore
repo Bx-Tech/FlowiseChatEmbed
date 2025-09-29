@@ -5,6 +5,7 @@ node_modules
 
 # build
 build/
+dist/
 
 # node_modules
 node_modules/
