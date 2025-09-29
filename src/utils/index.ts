@@ -97,7 +97,7 @@ export const setLocalStorageChatflow = (chatflowid: string, chatId: string, save
         trimmedMessage.fileUploads = message.fileUploads.map((file: any) => ({
           type: file.type,
           name: file.name,
-          mime: file.mime
+          mime: file.mime,
         }));
       }
 

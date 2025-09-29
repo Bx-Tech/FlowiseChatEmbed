@@ -1,6 +1,6 @@
 {
   "name": "@bxtech/flowise-embed",
-  "version": "3.0.9-test3",
+  "version": "3.0.9-test1",
   "description": "Javascript library to display flowise chatbot on your website",
   "type": "module",
   "main": "dist/index.js",
