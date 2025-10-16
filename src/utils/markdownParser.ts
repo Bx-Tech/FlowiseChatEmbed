@@ -1,0 +1,157 @@
+import MarkdownIt from 'markdown-it';
+import DOMPurify from 'dompurify';
+import hljs from 'highlight.js/lib/core';
+
+// Import only commonly used languages to keep bundle size down
+import javascript from 'highlight.js/lib/languages/javascript';
+import typescript from 'highlight.js/lib/languages/typescript';
+import python from 'highlight.js/lib/languages/python';
+import json from 'highlight.js/lib/languages/json';
+import bash from 'highlight.js/lib/languages/bash';
+import sql from 'highlight.js/lib/languages/sql';
+import xml from 'highlight.js/lib/languages/xml';
+import css from 'highlight.js/lib/languages/css';
+
+// Register languages
+hljs.registerLanguage('javascript', javascript);
+hljs.registerLanguage('typescript', typescript);
+hljs.registerLanguage('python', python);
+hljs.registerLanguage('json', json);
+hljs.registerLanguage('bash', bash);
+hljs.registerLanguage('sql', sql);
+hljs.registerLanguage('xml', xml);
+hljs.registerLanguage('html', xml);
+hljs.registerLanguage('css', css);
+
+interface MarkdownParserOptions {
+  sanitize?: boolean;
+  highlight?: boolean;
+  breaks?: boolean;
+}
+
+export class MarkdownParser {
+  private md: MarkdownIt;
+  private sanitize: boolean;
+
+  constructor(options: MarkdownParserOptions = {}) {
+    this.sanitize = options.sanitize !== false; // Default true
+
+    // Configure markdown-it
+    this.md = new MarkdownIt({
+      html: !this.sanitize, // Only allow HTML if not sanitizing
+      linkify: true,
+      typographer: true,
+      breaks: options.breaks !== false, // Default true for better line break handling
+      highlight: options.highlight !== false ? this.highlightCode.bind(this) : undefined,
+    });
+  }
+
+  private highlightCode(str: string, lang: string): string {
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return '<pre class="hljs"><code>' + hljs.highlight(str, { language: lang, ignoreIllegals: true }).value + '</code></pre>';
+      } catch (err) {
+        console.error('Syntax highlighting error:', err);
+      }
+    }
+
+    // Use default escaping
+    try {
+      return '<pre class="hljs"><code>' + this.md.utils.escapeHtml(str) + '</code></pre>';
+    } catch (err) {
+      return '<pre><code>' + this.escapeHtml(str) + '</code></pre>';
+    }
+  }
+
+  parse(markdown: string): string {
+    try {
+      // Input validation
+      if (markdown === null || markdown === undefined) {
+        return '';
+      }
+
+      if (typeof markdown !== 'string') {
+        console.warn('MarkdownParser received non-string input:', typeof markdown);
+        return this.escapeHtml(String(markdown));
+      }
+
+      if (markdown.trim() === '') {
+        return '';
+      }
+
+      // Parse markdown
+      let html = this.md.render(markdown);
+
+      // Sanitize if enabled
+      if (this.sanitize) {
+        html = DOMPurify.sanitize(html, {
+          ALLOWED_TAGS: [
+            'p',
+            'br',
+            'strong',
+            'em',
+            'u',
+            's',
+            'code',
+            'pre',
+            'a',
+            'ul',
+            'ol',
+            'li',
+            'blockquote',
+            'h1',
+            'h2',
+            'h3',
+            'h4',
+            'h5',
+            'h6',
+            'table',
+            'thead',
+            'tbody',
+            'tr',
+            'th',
+            'td',
+            'hr',
+            'img',
+            'span',
+            'div',
+          ],
+          ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'src', 'alt', 'title'],
+          ALLOW_DATA_ATTR: false,
+          ADD_ATTR: ['target'], // Ensure target attribute for links
+        });
+      }
+
+      return html;
+    } catch (error) {
+      console.error('Markdown parsing error:', error);
+      // Fallback: return escaped plain text
+      return this.escapeHtml(markdown);
+    }
+  }
+
+  private escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+}
+
+// Export singleton instances with different configurations
+export const defaultMarkdownParser = new MarkdownParser({
+  sanitize: true,
+  highlight: true,
+  breaks: true,
+});
+
+export const unsafeMarkdownParser = new MarkdownParser({
+  sanitize: false,
+  highlight: true,
+  breaks: true,
+});
+
+// Export a helper function for easy use
+export function parseMarkdown(markdown: string, options?: { renderHTML?: boolean }): string {
+  const parser = options?.renderHTML ? unsafeMarkdownParser : defaultMarkdownParser;
+  return parser.parse(markdown);
+}

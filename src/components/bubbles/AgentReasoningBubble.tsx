@@ -1,5 +1,5 @@
 import { For, onMount } from 'solid-js';
-import { Marked } from '@ts-stack/markdown';
+import { parseMarkdown } from '@/utils/markdownParser';
 import { FileUpload } from '../Bot';
 import { cloneDeep } from 'lodash';
 
@@ -22,13 +22,14 @@ const defaultFontSize = 16;
 
 export const AgentReasoningBubble = (props: Props) => {
   let botMessageEl: HTMLDivElement | undefined;
-  Marked.setOptions({ isNoP: true, sanitize: props.renderHTML !== undefined ? !props.renderHTML : true });
 
   onMount(() => {
     if (botMessageEl) {
-      botMessageEl.innerHTML = Marked.parse(`**✅ ${props.agentName}** \n\n${props.agentMessage}`);
+      botMessageEl.innerHTML = parseMarkdown(`**✅ ${props.agentName}** \n\n${props.agentMessage}`, { renderHTML: props.renderHTML });
+      botMessageEl.classList.add('markdown-content');
       botMessageEl.querySelectorAll('a').forEach((link) => {
         link.target = '_blank';
+        link.rel = 'noopener noreferrer';
       });
     }
   });
@@ -67,8 +68,8 @@ export const AgentReasoningBubble = (props: Props) => {
       const src = item.data as string;
       return (
         <span
-          innerHTML={Marked.parse(src)}
-          class="prose"
+          innerHTML={parseMarkdown(src, { renderHTML: props.renderHTML })}
+          class="prose markdown-content"
           style={{
             'background-color': props.backgroundColor ?? defaultBackgroundColor,
             color: props.textColor ?? defaultTextColor,

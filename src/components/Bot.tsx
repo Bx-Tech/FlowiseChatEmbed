@@ -843,8 +843,14 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
           const errMessage = (await response.text()) ?? 'Unauthenticated';
           handleError(errMessage);
           throw new Error(errMessage);
+        } else if (response.status >= 500) {
+          const errMessage = 'The server encountered an error. Please try again in a moment.';
+          handleError(errMessage, true);
+          throw new Error(errMessage);
         } else {
-          throw new Error();
+          const errMessage = `Unexpected response (${response.status}). Please try again.`;
+          handleError(errMessage, true);
+          throw new Error(errMessage);
         }
       },
       async onmessage(ev) {
@@ -901,8 +907,22 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       },
       onerror(err) {
         console.error('EventSource Error: ', err);
+        // Determine error type and show appropriate message
+        let errorMessage = 'Connection error. Please check your internet connection and try again.';
+
+        if (err instanceof Error) {
+          // Network errors
+          if (err.message.includes('fetch') || err.message.includes('network')) {
+            errorMessage = 'Network error. Please check your connection.';
+          } else if (err.message.includes('timeout')) {
+            errorMessage = 'Request timed out. Please try again.';
+          } else if (err.message) {
+            errorMessage = `Error: ${err.message}`;
+          }
+        }
+
+        handleError(errorMessage, true);
         closeResponse();
-        throw err;
       },
     });
   };
@@ -1919,8 +1939,12 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                           setLeadEmail={setLeadEmail}
                         />
                       )}
-                      {message.type === 'userMessage' && loading() && index() === messages().length - 1 && <LoadingBubble />}
-                      {message.type === 'apiMessage' && message.message === '' && loading() && index() === messages().length - 1 && <LoadingBubble />}
+                      {message.type === 'userMessage' && loading() && index() === messages().length - 1 && (
+                        <LoadingBubble showAvatar={props.botMessage?.showAvatar} avatarSrc={props.botMessage?.avatarSrc} />
+                      )}
+                      {message.type === 'apiMessage' && message.message === '' && loading() && index() === messages().length - 1 && (
+                        <LoadingBubble showAvatar={props.botMessage?.showAvatar} avatarSrc={props.botMessage?.avatarSrc} />
+                      )}
                     </>
                   );
                 }}

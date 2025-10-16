@@ -1,6 +1,6 @@
 import { createEffect, Show, createSignal, onMount, For } from 'solid-js';
 import { Avatar } from '../avatars/Avatar';
-import { Marked } from '@ts-stack/markdown';
+import { parseMarkdown } from '@/utils/markdownParser';
 import { FeedbackRatingType, sendFeedbackQuery, sendFileDownloadQuery, updateFeedbackQuery } from '@/queries/sendMessageQuery';
 import { FileUpload, IAction, MessageType } from '../Bot';
 import { CopyToClipboardButton, ThumbsDownButton, ThumbsUpButton } from '../buttons/FeedbackButtons';
@@ -42,8 +42,6 @@ const defaultFeedbackColor = '#3B81F6';
 export const BotBubble = (props: Props) => {
   let botDetailsEl: HTMLDetailsElement | undefined;
 
-  Marked.setOptions({ isNoP: true, sanitize: props.renderHTML !== undefined ? !props.renderHTML : true });
-
   const [rating, setRating] = createSignal('');
   const [feedbackId, setFeedbackId] = createSignal('');
   const [showFeedbackContentDialog, setShowFeedbackContentModal] = createSignal(false);
@@ -56,31 +54,14 @@ export const BotBubble = (props: Props) => {
 
   const setBotMessageRef = (el: HTMLSpanElement) => {
     if (el) {
-      el.innerHTML = Marked.parse(props.message.message);
-
-      // Apply textColor to all links, headings, and other markdown elements except code
-      const textColor = props.textColor ?? defaultTextColor;
-      el.querySelectorAll('a, h1, h2, h3, h4, h5, h6, strong, em, blockquote, li').forEach((element) => {
-        (element as HTMLElement).style.color = textColor;
-      });
-
-      // Code blocks (with pre) get white text
-      el.querySelectorAll('pre').forEach((element) => {
-        (element as HTMLElement).style.color = '#FFFFFF';
-        // Also ensure any code elements inside pre have white text
-        element.querySelectorAll('code').forEach((codeElement) => {
-          (codeElement as HTMLElement).style.color = '#FFFFFF';
-        });
-      });
-
-      // Inline code (not in pre) gets green text
-      el.querySelectorAll('code:not(pre code)').forEach((element) => {
-        (element as HTMLElement).style.color = '#4CAF50'; // Green color
-      });
+      // Parse markdown with error handling
+      el.innerHTML = parseMarkdown(props.message.message, { renderHTML: props.renderHTML });
+      el.classList.add('markdown-content');
 
       // Set target="_blank" for links
       el.querySelectorAll('a').forEach((link) => {
         link.target = '_blank';
+        link.rel = 'noopener noreferrer';
       });
 
       // Store the element ref for the copy function
@@ -277,31 +258,12 @@ export const BotBubble = (props: Props) => {
   });
 
   const renderArtifacts = (item: Partial<FileUpload>) => {
-    // Instead of onMount, we'll use a callback ref to apply styles
+    // Instead of onMount, we'll use a callback ref to apply links attributes
     const setArtifactRef = (el: HTMLSpanElement) => {
       if (el) {
-        const textColor = props.textColor ?? defaultTextColor;
-        // Apply textColor to all elements except code blocks
-        el.querySelectorAll('a, h1, h2, h3, h4, h5, h6, strong, em, blockquote, li').forEach((element) => {
-          (element as HTMLElement).style.color = textColor;
-        });
-
-        // Code blocks (with pre) get white text
-        el.querySelectorAll('pre').forEach((element) => {
-          (element as HTMLElement).style.color = '#FFFFFF';
-          // Also ensure any code elements inside pre have white text
-          element.querySelectorAll('code').forEach((codeElement) => {
-            (codeElement as HTMLElement).style.color = '#FFFFFF';
-          });
-        });
-
-        // Inline code (not in pre) gets green text
-        el.querySelectorAll('code:not(pre code)').forEach((element) => {
-          (element as HTMLElement).style.color = '#4CAF50'; // Green color
-        });
-
         el.querySelectorAll('a').forEach((link) => {
           link.target = '_blank';
+          link.rel = 'noopener noreferrer';
         });
       }
     };
@@ -331,8 +293,8 @@ export const BotBubble = (props: Props) => {
         <Show when={item.type !== 'png' && item.type !== 'jpeg' && item.type !== 'html'}>
           <span
             ref={setArtifactRef}
-            innerHTML={Marked.parse(item.data as string)}
-            class="prose"
+            innerHTML={parseMarkdown(item.data as string, { renderHTML: props.renderHTML })}
+            class="prose markdown-content"
             style={{
               'background-color': props.backgroundColor ?? defaultBackgroundColor,
               color: props.textColor ?? defaultTextColor,
