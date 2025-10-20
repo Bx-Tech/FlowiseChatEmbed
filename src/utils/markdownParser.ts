@@ -23,6 +23,65 @@ hljs.registerLanguage('xml', xml);
 hljs.registerLanguage('html', xml);
 hljs.registerLanguage('css', css);
 
+/**
+ * Preprocess markdown to fix common formatting issues, particularly with tables
+ * This handles cases where LLMs generate invalid markdown table syntax
+ */
+function preprocessMarkdown(text: string): string {
+  // Check if text contains tables
+  const hasTables = text.includes('|');
+
+  if (!hasTables) {
+    return text;
+  }
+
+  // Process line by line
+  const originalLines = text.split('\n');
+  const fixedLines: string[] = [];
+  let firstTableRowSeen = false;
+
+  for (let i = 0; i < originalLines.length; i++) {
+    let line = originalLines[i];
+
+    // Check if this is an empty table row (only pipes and whitespace)
+    if (line.includes('|')) {
+      const cellContent = line.split('|').map(s => s.trim()).filter(s => s.length > 0);
+      const isEmptyRow = cellContent.length === 0 || cellContent.every(cell => cell === '' || cell === '-');
+
+      if (isEmptyRow && !line.includes('-')) {
+        continue; // Skip this line
+      }
+    }
+
+    // Check if this line is a table separator row (has pipes and dashes)
+    if (line.includes('|') && line.includes('-')) {
+      const isSeparator = /^\s*\|[\s-:|]+\|\s*$/.test(line);
+      if (isSeparator) {
+        // Count columns from the line
+        const cols = line.split('|').filter(s => s.trim().length > 0 || s.includes('-')).length;
+        const replacement = '| ' + '--- | '.repeat(cols - 1) + '--- |';
+        line = replacement;
+      }
+    }
+
+    fixedLines.push(line);
+
+    // Only add a separator after the FIRST table row (header) if it doesn't have one
+    if (line.trim().startsWith('|') && line.trim().endsWith('|') && !line.includes('-') && !firstTableRowSeen) {
+      firstTableRowSeen = true;
+      const nextLine = originalLines[i + 1];
+      // If next line exists and is NOT a separator (check before it's processed)
+      if (nextLine && !(nextLine.includes('|') && nextLine.includes('-'))) {
+        const cols = line.split('|').filter(s => s.trim().length > 0).length;
+        const separator = '| ' + '--- | '.repeat(cols - 1) + '--- |';
+        fixedLines.push(separator);
+      }
+    }
+  }
+
+  return fixedLines.join('\n');
+}
+
 interface MarkdownParserOptions {
   sanitize?: boolean;
   highlight?: boolean;
@@ -79,8 +138,11 @@ export class MarkdownParser {
         return '';
       }
 
+      // Preprocess markdown to fix common issues (like invalid tables)
+      const preprocessedMarkdown = preprocessMarkdown(markdown);
+
       // Parse markdown
-      let html = this.md.render(markdown);
+      let html = this.md.render(preprocessedMarkdown);
 
       // Sanitize if enabled
       if (this.sanitize) {
