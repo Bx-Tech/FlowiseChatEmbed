@@ -45,8 +45,11 @@ function preprocessMarkdown(text: string): string {
 
     // Check if this is an empty table row (only pipes and whitespace)
     if (line.includes('|')) {
-      const cellContent = line.split('|').map(s => s.trim()).filter(s => s.length > 0);
-      const isEmptyRow = cellContent.length === 0 || cellContent.every(cell => cell === '' || cell === '-');
+      const cellContent = line
+        .split('|')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+      const isEmptyRow = cellContent.length === 0 || cellContent.every((cell) => cell === '' || cell === '-');
 
       if (isEmptyRow && !line.includes('-')) {
         continue; // Skip this line
@@ -58,7 +61,7 @@ function preprocessMarkdown(text: string): string {
       const isSeparator = /^\s*\|[\s-:|]+\|\s*$/.test(line);
       if (isSeparator) {
         // Count columns from the line
-        const cols = line.split('|').filter(s => s.trim().length > 0 || s.includes('-')).length;
+        const cols = line.split('|').filter((s) => s.trim().length > 0 || s.includes('-')).length;
         const replacement = '| ' + '--- | '.repeat(cols - 1) + '--- |';
         line = replacement;
       }
@@ -72,7 +75,7 @@ function preprocessMarkdown(text: string): string {
       const nextLine = originalLines[i + 1];
       // If next line exists and is NOT a separator (check before it's processed)
       if (nextLine && !(nextLine.includes('|') && nextLine.includes('-'))) {
-        const cols = line.split('|').filter(s => s.trim().length > 0).length;
+        const cols = line.split('|').filter((s) => s.trim().length > 0).length;
         const separator = '| ' + '--- | '.repeat(cols - 1) + '--- |';
         fixedLines.push(separator);
       }
