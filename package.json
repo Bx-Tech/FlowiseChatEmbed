@@ -34,7 +34,7 @@
     "express": "^4.21.1",
     "form-data": "^4.0.1",
     "highlight.js": "^11.11.1",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "markdown-it": "^14.1.0",
     "multer": "^1.4.5-lts.1",
     "node-fetch": "^3.3.2",
